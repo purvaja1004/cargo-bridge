@@ -99,7 +99,7 @@ Some ids which we have created
   Password- demo1234
  
 
-## MVP:
+## MVP
 
 1. SME-first
 
