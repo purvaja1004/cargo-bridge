@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forwarder Portal — CargoBridge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0a1628;
+    --navy2: #112240;
+    --navy3: #1a2f4a;
+    --gold: #c9a84c;
+    --gold2: #e8c97a;
+    --white: #f8f6f1;
+    --gray: #8892a4;
+    --light: #e2ddd4;
+    --green: #2ecc8a;
+    --red: #e55353;
+    --orange: #e6a828;
+    --border: rgba(255,255,255,0.07);
+    --teal: #2ec4b6;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'DM Sans',sans-serif; background:var(--navy); color:var(--white); min-height:100vh; }
+
+  /* SIDEBAR */
+  .sidebar {
+    position:fixed; left:0; top:0; bottom:0; width:250px;
+    background:var(--navy2); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; z-index:50;
+  }
+  .sidebar-logo {
+    padding:1.5rem; font-family:'Playfair Display',serif;
+    font-size:1.3rem; font-weight:700;
+    border-bottom:1px solid var(--border);
+  }
+  .sidebar-logo span { color:var(--gold); }
+  .sidebar-role {
+    padding:0.5rem 1.5rem 0.8rem;
+    border-bottom:1px solid var(--border);
+  }
+  .role-tag {
+    display:inline-flex; align-items:center; gap:0.4rem;
+    background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.25);
+    color:var(--gold); padding:0.3rem 0.8rem; border-radius:100px;
+    font-size:0.75rem; font-weight:600; letter-spacing:0.5px;
+  }
+  .sidebar-user { padding:0.8rem 1.5rem; border-bottom:1px solid var(--border); }
+  .user-company { font-size:0.78rem; color:var(--gray); }
+  .user-name { font-size:0.9rem; font-weight:600; margin-top:0.15rem; }
+  .sidebar-nav { flex:1; padding:1rem 0; overflow-y:auto; }
+  .nav-section { padding:0.5rem 1.5rem 0.3rem; font-size:0.7rem; font-weight:600; color:rgba(136,146,164,0.5); letter-spacing:1.5px; text-transform:uppercase; }
+  .nav-item {
+    display:flex; align-items:center; gap:0.8rem;
+    padding:0.65rem 1.5rem; color:var(--gray);
+    text-decoration:none; font-size:0.87rem; font-weight:500;
+    transition:all 0.2s; cursor:pointer;
+    border:none; background:none; width:100%; text-align:left;
+  }
+  .nav-item:hover { color:var(--white); background:rgba(255,255,255,0.04); }
+  .nav-item.active { color:var(--gold); background:rgba(201,168,76,0.08); border-right:2px solid var(--gold); }
+  .nav-icon { width:15px; height:15px; flex-shrink:0; }
+  .nav-badge {
+    margin-left:auto; background:var(--red); color:white;
+    font-size:0.68rem; font-weight:700; padding:0.15rem 0.45rem;
+    border-radius:100px; min-width:18px; text-align:center;
+  }
+  .sidebar-bottom { padding:1rem 1.5rem; border-top:1px solid var(--border); }
+  .btn-signout {
+    width:100%; padding:0.6rem; background:rgba(255,255,255,0.04);
+    border:1px solid var(--border); border-radius:6px; color:var(--gray);
+    font-size:0.82rem; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s;
+  }
+  .btn-signout:hover { color:var(--white); border-color:rgba(255,255,255,0.15); }
+
+  /* MAIN */
+  .main { margin-left:250px; min-height:100vh; }
+  .topbar {
+    padding:1.2rem 2rem; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+    background:rgba(10,22,40,0.85); backdrop-filter:blur(10px);
+    position:sticky; top:0; z-index:40;
+  }
+  .topbar-title { font-size:1rem; font-weight:600; }
+  .topbar-sub { font-size:0.78rem; color:var(--gray); margin-top:0.1rem; }
+  .topbar-actions { display:flex; gap:0.8rem; align-items:center; }
+  .btn-primary {
+    background:var(--gold); color:var(--navy);
+    padding:0.55rem 1.2rem; border-radius:7px;
+    font-weight:600; font-size:0.85rem; border:none; cursor:pointer;
+    font-family:'DM Sans',sans-serif; transition:all 0.2s;
+  }
+  .btn-primary:hover { background:var(--gold2); }
+  .page-content { padding:2rem; }
+  .page-section { display:none; }
+  .page-section.active { display:block; }
+
+  /* CARDS */
+  .kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1.2rem; margin-bottom:2rem; }
+  .kpi-card {
+    background:var(--navy2); border:1px solid var(--border);
+    border-radius:12px; padding:1.4rem; position:relative; overflow:hidden;
+  }
+  .kpi-card.accent { border-color:rgba(201,168,76,0.3); }
+  .kpi-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background:linear-gradient(90deg, var(--gold), transparent); opacity:0;
+    transition:opacity 0.3s;
+  }
+  .kpi-card.accent::before { opacity:1; }
+  .kpi-label { font-size:0.75rem; color:var(--gray); font-weight:500; letter-spacing:0.3px; margin-bottom:0.6rem; }
+  .kpi-value { font-family:'Playfair Display',serif; font-size:1.8rem; font-weight:700; }
+  .kpi-value.gold { color:var(--gold); }
+  .kpi-sub { font-size:0.75rem; color:var(--gray); margin-top:0.3rem; }
+  .kpi-sub.green { color:var(--green); }
+
+  /* SECTION CARD */
+  .card {
+    background:var(--navy2); border:1px solid var(--border);
+    border-radius:16px; overflow:hidden; margin-bottom:1.5rem;
+  }
+  .card-header {
+    padding:1.2rem 1.6rem; border-bottom:1px solid var(--border);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .card-header h3 { font-size:0.95rem; font-weight:600; }
+  .card-body { padding:1.6rem; }
+
+  /* TABLE */
+  table { width:100%; border-collapse:collapse; }
+  thead th {
+    padding:0.75rem 1.1rem; text-align:left;
+    font-size:0.72rem; font-weight:600; color:var(--gray);
+    letter-spacing:0.5px; text-transform:uppercase;
+    border-bottom:1px solid var(--border);
+    background:rgba(255,255,255,0.02);
+  }
+  tbody tr { border-bottom:1px solid rgba(255,255,255,0.04); transition:background 0.15s; }
+  tbody tr:hover { background:rgba(255,255,255,0.03); }
+  tbody tr:last-child { border-bottom:none; }
+  tbody td { padding:0.9rem 1.1rem; font-size:0.87rem; vertical-align:middle; }
+  .vessel-name { font-weight:600; }
+  .vessel-sub { font-size:0.75rem; color:var(--gray); margin-top:0.1rem; }
+
+  /* BADGES */
+  .badge {
+    padding:0.28rem 0.65rem; border-radius:100px;
+    font-size:0.73rem; font-weight:600; white-space:nowrap; display:inline-block;
+  }
+  .badge-green { background:rgba(46,204,138,0.12); color:var(--green); }
+  .badge-orange { background:rgba(230,168,40,0.12); color:var(--orange); }
+  .badge-red { background:rgba(229,83,83,0.12); color:var(--red); }
+  .badge-blue { background:rgba(46,196,182,0.12); color:var(--teal); }
+  .badge-gray { background:rgba(255,255,255,0.06); color:var(--gray); }
+
+  /* ACTION BUTTONS */
+  .btn-sm {
+    padding:0.38rem 0.9rem; border-radius:6px;
+    font-size:0.78rem; font-weight:600; cursor:pointer;
+    font-family:'DM Sans',sans-serif; transition:all 0.2s; border:none;
+  }
+  .btn-gold { background:var(--gold); color:var(--navy); }
+  .btn-gold:hover { background:var(--gold2); }
+  .btn-ghost { background:rgba(255,255,255,0.05); color:var(--white); border:1px solid var(--border); }
+  .btn-ghost:hover { background:rgba(255,255,255,0.08); }
+  .btn-danger { background:rgba(229,83,83,0.1); color:var(--red); border:1px solid rgba(229,83,83,0.2); }
+  .btn-danger:hover { background:rgba(229,83,83,0.2); }
+
+  /* FORM STYLES */
+  .form-grid { display:grid; gap:1.1rem; }
+  .form-grid-2 { grid-template-columns:1fr 1fr; }
+  .form-grid-3 { grid-template-columns:1fr 1fr 1fr; }
+  .field-group { display:flex; flex-direction:column; gap:0.4rem; }
+  .field-group.span2 { grid-column:span 2; }
+  .field-label { font-size:0.78rem; color:var(--gray); font-weight:500; letter-spacing:0.3px; }
+  .field-input, .field-select, .field-textarea {
+    background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+    border-radius:8px; padding:0.65rem 0.9rem; color:var(--white);
+    font-size:0.88rem; font-family:'DM Sans',sans-serif; outline:none;
+    transition:border-color 0.2s; width:100%;
+  }
+  .field-input:focus, .field-select:focus, .field-textarea:focus { border-color:rgba(201,168,76,0.5); }
+  .field-input::placeholder, .field-textarea::placeholder { color:rgba(255,255,255,0.2); }
+  .field-select option { background:var(--navy2); }
+  .field-textarea { resize:vertical; min-height:80px; line-height:1.5; }
+  .form-divider { height:1px; background:var(--border); margin:0.5rem 0 1rem; }
+  .section-title { font-size:0.82rem; font-weight:600; color:var(--light); margin-bottom:1rem; letter-spacing:0.3px; }
+
+  /* SLOT LISTING CARDS */
+  .listing-grid { display:grid; gap:1.2rem; }
+  .listing-card {
+    background:rgba(255,255,255,0.02); border:1px solid var(--border);
+    border-radius:12px; padding:1.3rem;
+    display:grid; grid-template-columns:1fr auto; gap:1.5rem; align-items:start;
+  }
+  .listing-card:hover { border-color:rgba(255,255,255,0.12); }
+  .listing-vessel { font-weight:600; font-size:0.95rem; margin-bottom:0.3rem; }
+  .listing-route { color:var(--gray); font-size:0.85rem; margin-bottom:0.8rem; }
+  .listing-meta { display:flex; gap:1.5rem; flex-wrap:wrap; }
+  .meta-chip {
+    background:rgba(255,255,255,0.04); border:1px solid var(--border);
+    border-radius:6px; padding:0.3rem 0.7rem;
+    font-size:0.78rem; color:var(--light);
+  }
+  .meta-chip span { color:var(--gray); margin-right:0.3rem; }
+  .listing-actions { display:flex; flex-direction:column; gap:0.5rem; align-items:flex-end; }
+  .listing-price { font-family:'Playfair Display',serif; font-size:1.2rem; font-weight:700; color:var(--gold); margin-bottom:0.3rem; text-align:right; }
+  .listing-teu { font-size:0.78rem; color:var(--gray); text-align:right; margin-bottom:0.6rem; }
+
+  /* INQUIRIES */
+  .inquiry-card {
+    background:rgba(255,255,255,0.02); border:1px solid var(--border);
+    border-radius:12px; padding:1.3rem; margin-bottom:1rem;
+  }
+  .inquiry-card.new { border-color:rgba(201,168,76,0.25); background:rgba(201,168,76,0.03); }
+  .inquiry-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.8rem; }
+  .inquiry-company { font-weight:600; font-size:0.92rem; }
+  .inquiry-time { font-size:0.75rem; color:var(--gray); }
+  .inquiry-detail { font-size:0.85rem; color:var(--gray); line-height:1.6; margin-bottom:1rem; }
+  .inquiry-actions { display:flex; gap:0.7rem; }
+
+  /* MODAL */
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.8);
+    backdrop-filter:blur(8px); z-index:200;
+    display:none; align-items:center; justify-content:center; padding:1rem;
+  }
+  .modal-overlay.active { display:flex; }
+  .modal {
+    background:var(--navy2); border:1px solid rgba(201,168,76,0.2);
+    border-radius:20px; padding:2rem; width:100%; max-width:640px;
+    max-height:90vh; overflow-y:auto; animation:slideUp 0.3s ease;
+  }
+  @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  .modal-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem; }
+  .modal-title { font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:700; }
+  .modal-subtitle { font-size:0.82rem; color:var(--gray); margin-top:0.2rem; }
+  .modal-close { background:none; border:none; color:var(--gray); font-size:1.2rem; cursor:pointer; padding:0.2rem; }
+  .modal-close:hover { color:var(--white); }
+  .btn-full {
+    width:100%; background:var(--gold); color:var(--navy);
+    padding:0.85rem; border-radius:8px; font-weight:700; font-size:0.95rem;
+    border:none; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s; margin-top:1rem;
+  }
+  .btn-full:hover { background:var(--gold2); }
+
+  /* SUCCESS TOAST */
+  .toast {
+    position:fixed; bottom:2rem; right:2rem;
+    background:var(--navy3); border:1px solid rgba(46,204,138,0.3);
+    border-radius:10px; padding:1rem 1.4rem;
+    display:none; align-items:center; gap:0.8rem;
+    z-index:300; animation:slideUp 0.3s ease;
+  }
+  .toast.show { display:flex; }
+  .toast-icon { width:20px; height:20px; background:rgba(46,204,138,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; color:var(--green); }
+  .toast-text { font-size:0.88rem; font-weight:500; }
+  .toast-sub { font-size:0.78rem; color:var(--gray); margin-top:0.1rem; }
+
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-logo">Cargo<span>Bridge</span></div>
+  <div class="sidebar-role">
+    <span class="role-tag">Freight Forwarder Portal</span>
+  </div>
+  <div class="sidebar-user">
+    <div class="user-company" id="ffCompany">Mehta Freight Forwarders Pvt Ltd</div>
+    <div class="user-name" id="ffName">Arjun Mehta</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Overview</div>
+    <button class="nav-item active" onclick="showPage('overview',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </button>
+    <div class="nav-section">Slot Management</div>
+    <button class="nav-item" onclick="showPage('addslot',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Add Empty Slots
+    </button>
+    <button class="nav-item" onclick="showPage('listings',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      My Listings
+    </button>
+    <div class="nav-section">Bookings</div>
+    <button class="nav-item" onclick="showPage('inquiries',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Booking Requests
+      <span class="nav-badge" id="inquiryBadge">3</span>
+    </button>
+    <button class="nav-item" onclick="showPage('confirmed',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      Confirmed Bookings
+    </button>
+    <div class="nav-section">Account</div>
+    <button class="nav-item" onclick="showPage('settings',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Account Settings
+    </button>
+  </nav>
+  <div class="sidebar-bottom">
+    <button class="btn-signout" onclick="window.location.href='../index.html'">Sign Out</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="pageTitle">Dashboard</div>
+      <div class="topbar-sub" id="pageSub">Overview of your slot listings and bookings</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn-primary" onclick="showPage('addslot', document.querySelector('.nav-item:nth-child(4)'))">+ Add Empty Slots</button>
+    </div>
+  </div>
+
+  <div class="page-content">
+
+    <!-- OVERVIEW PAGE -->
+    <div class="page-section active" id="page-overview">
+      <div class="kpi-grid">
+        <div class="kpi-card accent">
+          <div class="kpi-label">Total Slots Listed</div>
+          <div class="kpi-value gold">3,840 TEU</div>
+          <div class="kpi-sub green">Across 6 active vessels</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Slots Booked This Month</div>
+          <div class="kpi-value">1,240 TEU</div>
+          <div class="kpi-sub green">32% fill rate</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Revenue This Month</div>
+          <div class="kpi-value">Rs. 84.9L</div>
+          <div class="kpi-sub green">+18% vs last month</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Pending Requests</div>
+          <div class="kpi-value" style="color:var(--orange)">3</div>
+          <div class="kpi-sub" style="color:var(--orange)">Awaiting your response</div>
+        </div>
+      </div>
+
+      <!-- Active listings summary -->
+      <div class="card">
+        <div class="card-header">
+          <h3>Active Slot Listings</h3>
+          <button class="btn-sm btn-ghost" onclick="showPage('listings',null)">View All</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Vessel</th>
+              <th>Route</th>
+              <th>Available</th>
+              <th>Price / TEU</th>
+              <th>Departure</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="overviewListings"></tbody>
+        </table>
+      </div>
+
+      <!-- Recent requests -->
+      <div class="card">
+        <div class="card-header">
+          <h3>Recent Booking Requests</h3>
+          <button class="btn-sm btn-ghost" onclick="showPage('inquiries',null)">View All</button>
+        </div>
+        <div style="padding:1.2rem 1.6rem;" id="recentRequests"></div>
+      </div>
+    </div>
+
+    <!-- ADD SLOT PAGE -->
+    <div class="page-section" id="page-addslot">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3>Add Empty Container Slots</h3>
+          </div>
+        </div>
+        <div class="card-body">
+
+          <div class="section-title">Vessel Information</div>
+          <div class="form-grid form-grid-2">
+            <div class="field-group">
+              <label class="field-label">Vessel Name</label>
+              <input type="text" class="field-input" id="f_vesselName" placeholder="e.g. Maersk Mumbai">
+            </div>
+            <div class="field-group">
+              <label class="field-label">IMO Number</label>
+              <input type="text" class="field-input" id="f_imo" placeholder="e.g. IMO9778791">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Shipping Line</label>
+              <select class="field-select" id="f_line">
+                <option>Maersk Line</option>
+                <option>Mediterranean Shipping Co.</option>
+                <option>CMA CGM Group</option>
+                <option>Hapag-Lloyd</option>
+                <option>Evergreen Marine Corp</option>
+                <option>Ocean Network Express</option>
+                <option>COSCO Shipping Lines</option>
+                <option>Yang Ming Marine</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Vessel Type</label>
+              <select class="field-select" id="f_type">
+                <option>Container Ship</option>
+                <option>Bulk Carrier</option>
+                <option>General Cargo</option>
+                <option>Ro-Ro Vessel</option>
+                <option>Reefer Vessel</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Total TEU Capacity</label>
+              <input type="number" class="field-input" id="f_totalTeu" placeholder="e.g. 14000">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Already Booked (TEU)</label>
+              <input type="number" class="field-input" id="f_bookedTeu" placeholder="e.g. 11200" oninput="calcAvailable()">
+            </div>
+          </div>
+
+          <div class="form-divider"></div>
+          <div class="section-title">Route Details</div>
+          <div class="form-grid form-grid-2">
+            <div class="field-group">
+              <label class="field-label">Origin Port (must be in India or arriving to India)</label>
+              <select class="field-select" id="f_origin">
+                <optgroup label="India Ports">
+                  <option>Mumbai JNPT</option>
+                  <option>Chennai</option>
+                  <option>Mundra</option>
+                  <option>Kolkata</option>
+                  <option>Cochin</option>
+                  <option>Vizag</option>
+                  <option>Kandla</option>
+                  <option>Tuticorin</option>
+                  <option>Paradip</option>
+                </optgroup>
+                <optgroup label="International (arriving to India)">
+                  <option>Singapore</option>
+                  <option>Dubai Jebel Ali</option>
+                  <option>Rotterdam</option>
+                  <option>Hamburg</option>
+                  <option>Shanghai</option>
+                  <option>Colombo</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Destination Port</label>
+              <select class="field-select" id="f_dest">
+                <optgroup label="International">
+                  <option>Singapore</option>
+                  <option>Dubai Jebel Ali</option>
+                  <option>Rotterdam</option>
+                  <option>Hamburg</option>
+                  <option>Shanghai</option>
+                  <option>Colombo</option>
+                  <option>Port Klang</option>
+                  <option>Tanjung Pelepas</option>
+                </optgroup>
+                <optgroup label="India Ports">
+                  <option>Mumbai JNPT</option>
+                  <option>Chennai</option>
+                  <option>Mundra</option>
+                  <option>Kolkata</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Departure Date</label>
+              <input type="date" class="field-input" id="f_depDate">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Estimated Arrival Date</label>
+              <input type="date" class="field-input" id="f_arrDate">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Transit Time (days)</label>
+              <input type="number" class="field-input" id="f_transit" placeholder="e.g. 12">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Port Cut-off Date</label>
+              <input type="date" class="field-input" id="f_cutoff">
+            </div>
+          </div>
+
+          <div class="form-divider"></div>
+          <div class="section-title">Slot Availability and Pricing</div>
+          <div class="form-grid form-grid-3">
+            <div class="field-group">
+              <label class="field-label">Available Slots (TEU)</label>
+              <input type="number" class="field-input" id="f_availTeu" placeholder="Auto-calculated" readonly style="background:rgba(201,168,76,0.05);border-color:rgba(201,168,76,0.2);color:var(--gold);">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Min Booking (TEU)</label>
+              <input type="number" class="field-input" id="f_minTeu" placeholder="e.g. 1">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Max Booking per SME (TEU)</label>
+              <input type="number" class="field-input" id="f_maxTeu" placeholder="e.g. 200">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Price per TEU (Rs.)</label>
+              <input type="number" class="field-input" id="f_price" placeholder="e.g. 68400">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Early Bird Price (Rs.) — optional</label>
+              <input type="number" class="field-input" id="f_earlyPrice" placeholder="Discount for early bookings">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Early Bird Deadline</label>
+              <input type="date" class="field-input" id="f_earlyDeadline">
+            </div>
+          </div>
+
+          <div class="form-divider"></div>
+          <div class="section-title">Cargo Specifications</div>
+          <div class="form-grid form-grid-2">
+            <div class="field-group">
+              <label class="field-label">Accepted Cargo Types</label>
+              <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.3rem;">
+                <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;cursor:pointer;">
+                  <input type="checkbox" id="c_general" checked style="accent-color:var(--gold)"> General / Dry
+                </label>
+                <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;cursor:pointer;">
+                  <input type="checkbox" id="c_reefer" style="accent-color:var(--gold)"> Refrigerated (Reefer)
+                </label>
+                <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;cursor:pointer;">
+                  <input type="checkbox" id="c_hazmat" style="accent-color:var(--gold)"> Hazmat (IMO Class)
+                </label>
+                <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;cursor:pointer;">
+                  <input type="checkbox" id="c_oog" style="accent-color:var(--gold)"> Out of Gauge (OOG)
+                </label>
+                <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;cursor:pointer;">
+                  <input type="checkbox" id="c_bulk" style="accent-color:var(--gold)"> Bulk / Break-bulk
+                </label>
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Container Sizes Available</label>
+              <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.3rem;">
+                <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;cursor:pointer;">
+                  <input type="checkbox" id="sz_20" checked style="accent-color:var(--gold)"> 20ft Standard
+                </label>
+                <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;cursor:pointer;">
+                  <input type="checkbox" id="sz_40" checked style="accent-color:var(--gold)"> 40ft Standard
+                </label>
+                <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;cursor:pointer;">
+                  <input type="checkbox" id="sz_40hc" style="accent-color:var(--gold)"> 40ft High Cube
+                </label>
+                <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;cursor:pointer;">
+                  <input type="checkbox" id="sz_45" style="accent-color:var(--gold)"> 45ft High Cube
+                </label>
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Max Weight per Container (kg)</label>
+              <input type="number" class="field-input" placeholder="e.g. 28000">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Special Requirements / Notes</label>
+              <textarea class="field-textarea" placeholder="Any special handling notes, documentation requirements, etc."></textarea>
+            </div>
+          </div>
+
+          <div class="form-divider"></div>
+          <div class="section-title">Contact for This Listing</div>
+          <div class="form-grid form-grid-3">
+            <div class="field-group">
+              <label class="field-label">Contact Name</label>
+              <input type="text" class="field-input" id="f_contactName" placeholder="e.g. Arjun Mehta">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Contact Email</label>
+              <input type="email" class="field-input" id="f_contactEmail" placeholder="arjun@mehtafreight.com">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Contact Phone</label>
+              <input type="tel" class="field-input" id="f_contactPhone" placeholder="+91 98765 43210">
+            </div>
+          </div>
+
+          <div style="display:flex;gap:1rem;margin-top:1.5rem;">
+            <button class="btn-primary" style="padding:0.75rem 2rem;font-size:0.92rem;" onclick="submitListing()">Publish Slot Listing</button>
+            <button class="btn-sm btn-ghost" style="padding:0.75rem 1.5rem;" onclick="saveDraft()">Save as Draft</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MY LISTINGS PAGE -->
+    <div class="page-section" id="page-listings">
+      <div class="card">
+        <div class="card-header">
+          <h3>My Slot Listings</h3>
+          <div style="display:flex;gap:0.7rem;">
+            <select class="field-select" style="width:auto;padding:0.4rem 0.8rem;font-size:0.82rem;">
+              <option>All Status</option>
+              <option>Active</option>
+              <option>Filling Fast</option>
+              <option>Draft</option>
+              <option>Closed</option>
+            </select>
+            <button class="btn-sm btn-gold" onclick="showPage('addslot',null)">+ New Listing</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="listing-grid" id="listingsGrid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOOKING REQUESTS PAGE -->
+    <div class="page-section" id="page-inquiries">
+      <div class="card">
+        <div class="card-header">
+          <h3>Booking Requests from SMEs</h3>
+          <span style="font-size:0.82rem;color:var(--orange);" id="pendingCount">3 pending responses</span>
+        </div>
+        <div class="card-body" id="inquiriesBody"></div>
+      </div>
+    </div>
+
+    <!-- CONFIRMED BOOKINGS PAGE -->
+    <div class="page-section" id="page-confirmed">
+      <div class="card">
+        <div class="card-header"><h3>Confirmed Bookings</h3></div>
+        <table>
+          <thead>
+            <tr>
+              <th>Booking Ref</th>
+              <th>SME Company</th>
+              <th>Vessel / Route</th>
+              <th>TEU Booked</th>
+              <th>Amount (Rs.)</th>
+              <th>Departure</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="confirmedBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div class="page-section" id="page-settings">
+      <div class="card" style="max-width:600px;">
+        <div class="card-header"><h3>Account Settings</h3></div>
+        <div class="card-body">
+          <div class="section-title">Company Information</div>
+          <div class="form-grid form-grid-2">
+            <div class="field-group span2">
+              <label class="field-label">Company Name</label>
+              <input type="text" class="field-input" value="Mehta Freight Forwarders Pvt Ltd">
+            </div>
+            <div class="field-group">
+              <label class="field-label">FFFAI License Number</label>
+              <input type="text" class="field-input" value="FFFAI-MUM-2024-0847">
+            </div>
+            <div class="field-group">
+              <label class="field-label">GST Number</label>
+              <input type="text" class="field-input" value="27AABCM1234A1Z5">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Primary Contact Email</label>
+              <input type="email" class="field-input" value="arjun@mehtafreight.com">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Phone</label>
+              <input type="tel" class="field-input" value="+91 98201 45678">
+            </div>
+          </div>
+          <div class="form-divider"></div>
+          <div class="section-title">Notification Preferences</div>
+          <div style="display:flex;flex-direction:column;gap:0.8rem;">
+            <label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;font-size:0.88rem;">
+              <input type="checkbox" checked style="accent-color:var(--gold)"> Email me when a new booking request arrives
+            </label>
+            <label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;font-size:0.88rem;">
+              <input type="checkbox" checked style="accent-color:var(--gold)"> SMS alert when a slot fills above 80%
+            </label>
+            <label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;font-size:0.88rem;">
+              <input type="checkbox" style="accent-color:var(--gold)"> Weekly summary report via email
+            </label>
+          </div>
+          <button class="btn-primary" style="margin-top:1.5rem;padding:0.7rem 1.8rem;">Save Changes</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- VESSEL DETAIL MODAL -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal" id="detailContent"></div>
+</div>
+
+<!-- SUCCESS TOAST -->
+<div class="toast" id="toast">
+  <div class="toast-icon">&#10003;</div>
+  <div>
+    <div class="toast-text" id="toastText">Listing published successfully</div>
+    <div class="toast-sub" id="toastSub">Visible to all SMEs on CargoBridge</div>
+  </div>
+</div>
+
+<script src="../api.js"></script>
+<script>
+// API-integrated forwarder portal
+let listings = [];
+let inquiries = [];
+let confirmed = [];
+
+function formatRs(n) { return CB.formatRupees(n); }
+
+function statusBadge(s) {
+  const map = {
+    active: '<span class="badge badge-green">Active</span>',
+    filling: '<span class="badge badge-orange">Filling Fast</span>',
+    draft: '<span class="badge badge-gray">Draft</span>',
+    closed: '<span class="badge badge-red">Closed</span>',
+    confirmed: '<span class="badge badge-green">Confirmed</span>',
+    transit: '<span class="badge badge-blue">In Transit</span>',
+    pending: '<span class="badge badge-orange">Pending</span>',
+    approved: '<span class="badge badge-green">Approved</span>',
+    rejected: '<span class="badge badge-red">Rejected</span>',
+  };
+  return map[s] || s;
+}
+
+function calcAvailable() {
+  const total = parseInt(document.getElementById('f_totalTeu').value) || 0;
+  const booked = parseInt(document.getElementById('f_bookedTeu').value) || 0;
+  document.getElementById('f_availTeu').value = Math.max(0, total - booked);
+}
+
+function renderOverviewListings() {
+  const tbody = document.getElementById('overviewListings');
+  if (!listings.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:1.5rem">No listings yet. Add your first slot!</td></tr>'; return; }
+  tbody.innerHTML = listings.slice(0,4).map(l => {
+    const days = CB.daysUntil(l.departure_date);
+    return `<tr>
+      <td><div class="vessel-name">${l.vessel_name}</div><div class="vessel-sub">${l.imo_number||''}</div></td>
+      <td>${l.from_port} → ${l.to_port}</td>
+      <td style="color:var(--green);font-weight:600">${l.available_teu.toLocaleString()} TEU</td>
+      <td>${formatRs(l.price_per_teu)}</td>
+      <td style="color:var(--gray)">In ${days} days</td>
+      <td>${statusBadge(l.status)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderRecentRequests() {
+  const el = document.getElementById('recentRequests');
+  const pending = inquiries.filter(i => i.status === 'pending');
+  if (!pending.length) { el.innerHTML = '<div style="color:var(--gray);font-size:.85rem">No pending requests.</div>'; return; }
+  el.innerHTML = pending.slice(0,2).map(i => `
+    <div class="inquiry-card new" style="margin-bottom:0.8rem;">
+      <div class="inquiry-header">
+        <div>
+          <div class="inquiry-company">${i.sme_company} <span style="font-weight:400;color:var(--gray)">— ${i.sme_name}</span></div>
+          <div style="font-size:0.78rem;color:var(--gray);margin-top:0.2rem;">${i.teu_count} TEU &middot; ${formatRs(i.total_amount)}</div>
+        </div>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <span class="badge badge-orange">New</span>
+        </div>
+      </div>
+      <div class="inquiry-actions">
+        <button class="btn-sm btn-gold" onclick="approveInquiry(${i.id})">Approve</button>
+        <button class="btn-sm btn-ghost" onclick="openRejectModal(${i.id})">Decline</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderListings() {
+  const grid = document.getElementById('listingsGrid');
+  if (!listings.length) { grid.innerHTML = '<div style="color:var(--gray);text-align:center;padding:3rem">No listings yet. Click "Add Empty Slots" to get started.</div>'; return; }
+  grid.innerHTML = listings.map(l => {
+    const days = CB.daysUntil(l.departure_date);
+    const fillPct = l.total_teu ? Math.round(((l.total_teu - l.available_teu) / l.total_teu) * 100) : 0;
+    return `
+    <div class="listing-card">
+      <div>
+        <div class="listing-vessel">${l.vessel_name} <span style="font-size:0.75rem;color:var(--gray);font-weight:400;">${l.imo_number||''}</span></div>
+        <div class="listing-route">${l.shipping_line||''} · ${l.from_port} → ${l.to_port}</div>
+        <div class="listing-meta">
+          <div class="meta-chip"><span>Available</span>${l.available_teu.toLocaleString()} TEU</div>
+          <div class="meta-chip"><span>Departs in</span>${days} days</div>
+          <div class="meta-chip"><span>Cargo</span>${l.cargo_types||'General'}</div>
+          <div class="meta-chip"><span>Sizes</span>${l.container_sizes||'20ft, 40ft'}</div>
+        </div>
+        <div style="margin-top:0.8rem;">
+          <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--gray);margin-bottom:0.3rem;">
+            <span>Fill rate</span><span>${fillPct}%</span>
+          </div>
+          <div style="height:4px;background:rgba(255,255,255,0.07);border-radius:2px;">
+            <div style="height:100%;width:${fillPct}%;background:${fillPct>80?'var(--red)':fillPct>50?'var(--orange)':'var(--green)'};border-radius:2px;transition:width 0.5s;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="listing-actions">
+        <div>${statusBadge(l.status)}</div>
+        <div class="listing-price">${formatRs(l.price_per_teu)}</div>
+        <div class="listing-teu">per TEU</div>
+        <button class="btn-sm btn-ghost" onclick="editListing(${l.id})">Edit</button>
+        <button class="btn-sm btn-danger" onclick="pauseListing(${l.id})">Pause</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderInquiries() {
+  const body = document.getElementById('inquiriesBody');
+  const pending = inquiries.filter(i => i.status === 'pending').length;
+  document.getElementById('pendingCount').textContent = `${pending} pending response${pending !== 1 ? 's' : ''}`;
+  document.getElementById('inquiryBadge').textContent = pending || '0';
+
+  if (!inquiries.length) { body.innerHTML = '<div style="color:var(--gray);text-align:center;padding:3rem">No booking requests yet.</div>'; return; }
+
+  body.innerHTML = inquiries.map(i => `
+    <div class="inquiry-card ${i.status === 'pending' ? 'new' : ''}">
+      <div class="inquiry-header">
+        <div>
+          <div class="inquiry-company">${i.sme_company} <span style="color:var(--gray);font-weight:400">— ${i.sme_name}</span></div>
+          <div style="font-size:0.8rem;color:var(--gray);margin-top:0.2rem;">${i.teu_count} TEU · ${formatRs(i.total_amount)}</div>
+        </div>
+        <div style="display:flex;gap:0.6rem;align-items:center;">
+          ${statusBadge(i.status)}
+          <span style="font-size:0.75rem;color:var(--gray)">${new Date(i.created_at).toLocaleDateString('en-IN')}</span>
+        </div>
+      </div>
+      ${i.note ? `<div class="inquiry-detail">${i.note}</div>` : ''}
+      ${i.status === 'pending' ? `
+      <div class="inquiry-actions">
+        <button class="btn-sm btn-gold" onclick="approveInquiry(${i.id})">Approve Booking</button>
+        <button class="btn-sm btn-ghost" onclick="openRejectModal(${i.id})">Decline with Message</button>
+      </div>` : ''}
+      ${i.status === 'rejected' && i.rejection_message ? `<div style="font-size:0.82rem;color:var(--red);margin-top:.5rem">Rejection reason: ${i.rejection_message}</div>` : ''}
+      ${i.status === 'approved' ? `<div style="font-size:0.82rem;color:var(--green);">✓ Booking confirmed and bill of lading sent to SME.</div>` : ''}
+    </div>`).join('');
+}
+
+function renderConfirmed() {
+  const tbody = document.getElementById('confirmedBody');
+  const approvedReqs = inquiries.filter(i => i.status === 'approved');
+  if (!approvedReqs.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:1.5rem">No confirmed bookings yet.</td></tr>'; return; }
+  tbody.innerHTML = approvedReqs.map(i => `
+    <tr>
+      <td style="font-weight:600;color:var(--gold);font-family:'Playfair Display',serif">—</td>
+      <td>${i.sme_company}</td>
+      <td><div>${i.sme_name}</div></td>
+      <td>${i.teu_count} TEU</td>
+      <td style="font-weight:600">${formatRs(i.total_amount)}</td>
+      <td style="color:var(--gray)">—</td>
+      <td>${statusBadge('confirmed')}</td>
+    </tr>`).join('');
+}
+
+async function approveInquiry(id) {
+  try {
+    await CB.approveRequest(id);
+    await loadData();
+    showToast('Booking approved', 'Bill of lading will be sent to the SME');
+  } catch(e) { showError('Approval failed: ' + e.message); }
+}
+
+let rejectTargetId = null;
+function openRejectModal(id) {
+  rejectTargetId = id;
+  document.getElementById('detailContent').innerHTML = `
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Decline Booking Request</div>
+        <div class="modal-subtitle">This message will be sent to the SME</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label class="field-label" style="margin-bottom:.4rem;display:block">Reason for rejection</label>
+      <textarea class="field-textarea" id="rejectMsg" rows="4" placeholder="e.g. Vessel is fully booked, cargo type not accepted, documentation incomplete..."></textarea>
+    </div>
+    <button class="btn-full" onclick="submitReject()">Send Decline Message</button>`;
+  document.getElementById('detailModal').classList.add('active');
+}
+
+async function submitReject() {
+  const msg = document.getElementById('rejectMsg').value.trim();
+  if (!msg) { alert('Please enter a rejection reason'); return; }
+  try {
+    await CB.rejectRequest(rejectTargetId, msg);
+    closeModal();
+    await loadData();
+    showToast('Request declined', 'Message sent to the SME');
+  } catch(e) { showError('Failed: ' + e.message); }
+}
+
+async function submitListing() {
+  const name = document.getElementById('f_vesselName').value.trim();
+  if (!name) { alert('Please fill in the vessel name.'); return; }
+  const depDate = document.getElementById('f_depDate').value;
+  if (!depDate) { alert('Please select a departure date.'); return; }
+
+  const cargo = [
+    document.getElementById('c_general').checked && 'General',
+    document.getElementById('c_reefer').checked && 'Reefer',
+    document.getElementById('c_hazmat').checked && 'Hazmat',
+  ].filter(Boolean).join(', ');
+
+  const sizes = [
+    document.getElementById('sz_20').checked && '20ft',
+    document.getElementById('sz_40').checked && '40ft',
+    document.getElementById('sz_40hc').checked && '40ft HC',
+    document.getElementById('sz_45').checked && '45ft HC',
+  ].filter(Boolean).join(', ');
+
+  const payload = {
+    vessel_name: name,
+    imo_number: document.getElementById('f_imo').value,
+    shipping_line: document.getElementById('f_line').value,
+    from_port: document.getElementById('f_origin').value,
+    to_port: document.getElementById('f_dest').value,
+    departure_date: new Date(depDate).toISOString(),
+    available_teu: parseInt(document.getElementById('f_availTeu').value) || 0,
+    total_teu: parseInt(document.getElementById('f_totalTeu').value) || null,
+    price_per_teu: parseFloat(document.getElementById('f_price').value) || 0,
+    cargo_types: cargo || 'General',
+    container_sizes: sizes || '20ft, 40ft',
+    contact_email: document.getElementById('f_contactEmail').value,
+  };
+
+  try {
+    await CB.createListing(payload);
+    await loadData();
+    showToast('Slot listing published', `${name} is now visible to all SMEs`);
+    showPage('listings', null);
+  } catch(e) { showError('Failed to publish: ' + e.message); }
+}
+
+function saveDraft() {
+  showToast('Draft saved', 'You can publish this listing anytime from My Listings');
+}
+
+async function pauseListing(id) {
+  try {
+    await CB.updateListing(id, { status: 'closed' });
+    await loadData();
+    showToast('Listing paused', 'It is no longer visible to SMEs');
+  } catch(e) { showError(e.message); }
+}
+
+function editListing(id) {
+  const l = listings.find(x => x.id === id);
+  if (!l) return;
+  const days = CB.daysUntil(l.departure_date);
+  document.getElementById('detailContent').innerHTML = `
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">${l.vessel_name}</div>
+        <div class="modal-subtitle">${l.imo_number||''} · ${l.shipping_line||''}</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+      <div><div style="font-size:.75rem;color:var(--gray);margin-bottom:.3rem">Route</div><div style="font-weight:600">${l.from_port} to ${l.to_port}</div></div>
+      <div><div style="font-size:.75rem;color:var(--gray);margin-bottom:.3rem">Available</div><div style="font-weight:600;color:var(--green)">${l.available_teu.toLocaleString()} TEU</div></div>
+      <div><div style="font-size:.75rem;color:var(--gray);margin-bottom:.3rem">Price per TEU</div><div style="font-weight:600;color:var(--gold)">${formatRs(l.price_per_teu)}</div></div>
+      <div><div style="font-size:.75rem;color:var(--gray);margin-bottom:.3rem">Departure</div><div style="font-weight:600">In ${days} days</div></div>
+    </div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label class="field-label" style="margin-bottom:.4rem;display:block">Update Available TEU</label>
+      <input type="number" class="field-input" id="edit_teu" value="${l.available_teu}">
+    </div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label class="field-label" style="margin-bottom:.4rem;display:block">Update Price per TEU (Rs.)</label>
+      <input type="number" class="field-input" id="edit_price" value="${l.price_per_teu}">
+    </div>
+    <button class="btn-full" onclick="saveEdit(${l.id})">Save Changes</button>
+  `;
+  document.getElementById('detailModal').classList.add('active');
+}
+
+async function saveEdit(id) {
+  try {
+    await CB.updateListing(id, {
+      available_teu: parseInt(document.getElementById('edit_teu').value),
+      price_per_teu: parseFloat(document.getElementById('edit_price').value),
+    });
+    await loadData();
+    closeModal();
+    showToast('Listing updated', 'Changes are live on the platform');
+  } catch(e) { showError(e.message); }
+}
+
+function closeModal() { document.getElementById('detailModal').classList.remove('active'); }
+
+function showToast(text, sub) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastText').textContent = text;
+  document.getElementById('toastSub').textContent = sub;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ── Load all data from API ────────────────────────────────────────────────
+async function loadData() {
+  try {
+    listings = await CB.myListings();
+  } catch(e) { listings = []; }
+  try {
+    inquiries = await CB.getRequests();
+  } catch(e) { inquiries = []; }
+  confirmed = inquiries.filter(i => i.status === 'approved');
+  renderOverviewListings();
+  renderRecentRequests();
+  renderListings();
+  renderInquiries();
+  renderConfirmed();
+
+  // Update KPIs
+  const totalTeu = listings.reduce((s, l) => s + l.available_teu, 0);
+  const pendingCount = inquiries.filter(i => i.status === 'pending').length;
+  document.querySelectorAll('.kpi-value')[0].textContent = totalTeu.toLocaleString() + ' TEU';
+  document.querySelectorAll('.kpi-sub')[0].textContent = `Across ${listings.length} vessels`;
+  document.getElementById('inquiryBadge').textContent = pendingCount || '0';
+}
+
+const pageTitles = {
+  overview: ['Dashboard', 'Overview of your slot listings and bookings'],
+  addslot: ['Add Empty Slots', 'List available container space on your vessels'],
+  listings: ['My Listings', 'Manage your active slot listings'],
+  inquiries: ['Booking Requests', 'Review and respond to SME booking requests'],
+  confirmed: ['Confirmed Bookings', 'All confirmed and in-transit shipments'],
+  settings: ['Account Settings', 'Manage your forwarder profile and preferences'],
+};
+
+function showPage(page, btn) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const el = document.getElementById('page-' + page);
+  if (el) el.classList.add('active');
+  if (btn) btn.classList.add('active');
+  const t = pageTitles[page];
+  if (t) {
+    document.getElementById('pageTitle').textContent = t[0];
+    document.getElementById('pageSub').textContent = t[1];
+  }
+}
+
+window.onload = async function() {
+  const user = CB.getUser() || { name: 'Arjun Mehta', company: 'Mehta Freight Forwarders Pvt Ltd' };
+  document.getElementById('ffName').textContent = user.name;
+  document.getElementById('ffCompany').textContent = user.company || '';
+
+  // Sign out
+  document.querySelector('.btn-signout').onclick = () => {
+    CB.logout();
+    window.location.href = '../index.html';
+  };
+
+  const today = new Date().toISOString().split('T')[0];
+  document.querySelectorAll('input[type=date]').forEach(d => d.min = today);
+
+  await loadData();
+};
+</script>
+</body>
+</html>

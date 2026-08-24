@@ -1,0 +1,9 @@
+fastapi==0.110.0
+uvicorn[standard]==0.29.0
+python-multipart
+PyJWT
+passlib[bcrypt]
+pydantic
+pandas
+numpy
+scikit-learn
