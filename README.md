@@ -54,7 +54,7 @@ cargobridge/
 ├── START_BACKEND.bat     ← Windows startup script
 ├── start_backend.sh      ← Mac/Linux startup script
 └── README.md
-
+```
 
 ## Instructions for Opening the Website
 
@@ -64,6 +64,7 @@ cargobridge/
 python -m venv venv
 Activate it:
 venv\Scripts\activate
+```
 2. Upgrade pip
 pip install --upgrade pip setuptools wheel
 3. Install Dependencies
